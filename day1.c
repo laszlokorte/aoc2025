@@ -3,7 +3,7 @@
 
 long long part1(size_t size, char *buffer) {
   int zero = 0;
-  int pos = 0;
+  size_t pos = 0;
   int sign = 0;
   int value = 50;
   while (pos < size) {
@@ -50,7 +50,7 @@ long long part1(size_t size, char *buffer) {
 
 long long part2(size_t size, char *buffer) {
   int zero = 0;
-  int pos = 0;
+  size_t pos = 0;
   int sign = 0;
   int value = 50;
   while (pos < size) {

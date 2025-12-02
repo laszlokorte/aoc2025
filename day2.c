@@ -26,7 +26,6 @@ static inline bool is_funny(long long number, int parts) {
     return false;
   }
   int part_width = dgits / parts;
-  int start = part_width;
   bool matches = true;
   for (int start = part_width; matches && start < dgits; start += part_width) {
     for (int step = 0; matches && step < part_width; step++) {
@@ -51,12 +50,12 @@ static inline bool is_funny_any(long long number) {
 }
 
 long long part1(size_t size, char *buffer) {
-  int pos = 0;
+  size_t pos = 0;
   int r = 0;
   long long result = 0;
+  long long range[2] = {0};
   while (pos <= size) {
     char c = buffer[pos];
-    long long range[2];
     switch (c) {
     case '-': {
       r = 1 - r;
@@ -99,12 +98,12 @@ long long part1(size_t size, char *buffer) {
 }
 
 long long part2(size_t size, char *buffer) {
-  int pos = 0;
+  size_t pos = 0;
   int r = 0;
   long long result = 0;
+  long long range[2] = {0};
   while (pos <= size) {
     char c = buffer[pos];
-    long long range[2];
     switch (c) {
     case '-': {
       r = 1 - r;
@@ -119,7 +118,6 @@ long long part2(size_t size, char *buffer) {
       }
       r = 1 - r;
       for (long long v = range[0]; v <= range[1]; v++) {
-
         if (is_funny_any(v)) {
           result += v;
         }

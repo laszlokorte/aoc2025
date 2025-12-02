@@ -20,9 +20,10 @@ int main(int argc, char **args) {
   for (int i = 1; i < argc; i++) {
     char *filename = args[i];
     size_t filename_length = strlen(filename);
-    char with_extension[day_length + 1 + filename_length + 4];
+    char with_extension[day_length + 1 + filename_length + 5];
     sprintf(with_extension, "%s/%s.txt", day, filename);
 
+    printf("%s\n", with_extension);
     FILE *f = fopen(with_extension, "r");
     if (!f) {
       fprintf(stderr, "file not found: %s\n", with_extension);
