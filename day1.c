@@ -1,7 +1,7 @@
 #include "day.h"
 #include <stdio.h>
 
-int part1(size_t size, char *buffer) {
+long long part1(size_t size, char *buffer) {
   int zero = 0;
   int pos = 0;
   int sign = 0;
@@ -48,7 +48,7 @@ int part1(size_t size, char *buffer) {
   return zero;
 }
 
-int part2(size_t size, char *buffer) {
+long long part2(size_t size, char *buffer) {
   int zero = 0;
   int pos = 0;
   int sign = 0;

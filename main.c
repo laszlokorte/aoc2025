@@ -36,8 +36,8 @@ int main(int argc, char **args) {
     content[size - 1] = 0;
     fclose(f);
 
-    printf("result part1 [%s]: %d\n", filename, part1(size, content));
-    printf("result part2 [%s]: %d\n", filename, part2(size, content));
+    printf("result part1 [%s]: %lli\n", filename, part1(size, content));
+    printf("result part2 [%s]: %lli\n", filename, part2(size, content));
     free(content);
   }
   return 0;
