@@ -3,29 +3,44 @@
 #include <stdio.h>
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
-long long calc(size_t size, char *buffer);
 
-long long part1(size_t size, char *buffer) {
-  long long total_sum = 0;
+struct paper_size {
+  int line_length;
+  int last_line_start;
+  int line_count;
+};
 
+struct paper_size calc_size(size_t size, char *buffer) {
   int line_length = 0;
-  int line_start = 0;
+  int last_line_start = 0;
   int line_count = 0;
   int pos = 0;
   while (buffer[pos] != '\0' && pos <= (int)size) {
     if (buffer[pos] == '\n') {
       line_length = 1;
       line_count++;
-      line_start = pos + 1;
+      last_line_start = pos + 1;
     }
     line_length++;
     pos++;
   }
 
-  int p = line_start;
+  struct paper_size paper = {0};
+  paper.line_count = line_count;
+  paper.line_length = line_length;
+  paper.last_line_start = last_line_start;
+
+  return paper;
+}
+
+long long part1(size_t size, char *buffer) {
+  long long total_sum = 0;
+  struct paper_size paper = calc_size(size, buffer);
+
+  int p = paper.last_line_start;
   while (buffer[p] != '\0' && p <= (int)size) {
     char op = buffer[p];
-    int c = p - line_start;
+    int column = p - paper.last_line_start;
     int neutral_element = -1;
     switch (op) {
     case '+': {
@@ -38,15 +53,15 @@ long long part1(size_t size, char *buffer) {
     if (op == '*' || op == '+') {
       long long column_result = neutral_element;
       DEBUG("%c\n", op);
-      for (int l = 0; l < line_count; l++) {
+      for (int l = 0; l < paper.line_count; l++) {
         int digit_pos = 0;
         long long number_accum = 0;
-        while (buffer[c + line_length * l + digit_pos] == ' ') {
+        while (buffer[column + paper.line_length * l + digit_pos] == ' ') {
           digit_pos++;
         }
-        while (buffer[c + line_length * l + digit_pos] != ' ' &&
-               buffer[c + line_length * l + digit_pos] != '\n') {
-          int digit = buffer[c + line_length * l + digit_pos] - '0';
+        while (buffer[column + paper.line_length * l + digit_pos] != ' ' &&
+               buffer[column + paper.line_length * l + digit_pos] != '\n') {
+          int digit = buffer[column + paper.line_length * l + digit_pos] - '0';
           number_accum = number_accum * 10 + digit;
           digit_pos++;
         }
@@ -72,24 +87,12 @@ long long part1(size_t size, char *buffer) {
 long long part2(size_t size, char *buffer) {
   unsigned long long total_sum = 0;
 
-  int line_length = 0;
-  int line_start = 0;
-  int line_count = 0;
-  int pos = 0;
-  while (buffer[pos] != '\0' && pos <= (int)size) {
-    if (buffer[pos] == '\n') {
-      line_length = 1;
-      line_count++;
-      line_start = pos + 1;
-    }
-    line_length++;
-    pos++;
-  }
+  struct paper_size paper = calc_size(size, buffer);
 
-  int p = line_start;
+  int p = paper.last_line_start;
   while (buffer[p] != '\0' && p <= (int)size) {
     char op = buffer[p];
-    int c = p - line_start;
+    int column = p - paper.last_line_start;
     int neutral_element = -1;
     switch (op) {
     case '+': {
@@ -105,8 +108,8 @@ long long part2(size_t size, char *buffer) {
       int digit_pos = 0;
       while (true) {
         long long number_accum = 0;
-        for (int l = 0; l < line_count; l++) {
-          int digit = buffer[c + line_length * l + digit_pos] - '0';
+        for (int l = 0; l < paper.line_count; l++) {
+          int digit = buffer[column + paper.line_length * l + digit_pos] - '0';
           if (digit < 0 || digit > 10) {
             if (number_accum == 0) {
               continue;
@@ -137,6 +140,5 @@ long long part2(size_t size, char *buffer) {
     p++;
   }
 
-  //  printf("total: %llu\n", total_sum);
   return total_sum;
 }
