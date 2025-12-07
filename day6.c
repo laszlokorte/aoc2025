@@ -1,6 +1,7 @@
 #include "day.h"
 #include <stdbool.h>
 #include <stdio.h>
+
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
