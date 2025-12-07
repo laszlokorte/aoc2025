@@ -9,5 +9,5 @@
 ## Run all days
 
 ```sh
-./run.sh day?
+./run.sh 
 ```
