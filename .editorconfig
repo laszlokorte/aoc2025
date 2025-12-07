@@ -1,0 +1,6 @@
+# TXT-Dateien **nicht anfassen**
+[*.txt]
+trim_trailing_whitespace = false
+insert_final_newline = false
+end_of_line = unset
+charset = unset
