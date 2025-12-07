@@ -11,65 +11,81 @@ long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
 
 long long calc(size_t size, char *buffer, bool count_paths) {
-  long long total_sum = 0;
+  long long split_count = 0;
   int width = 0;
   int pos = 0;
   while (buffer[pos] != '\n' && pos <= (int)size) {
     width++;
     pos++;
   }
+  int stride = width + 1;
+  int height = (size + 1) / stride;
 
+  // scratchpad for storing
+  // the total path counts for the previous and
+  // current row
   long long possibilities[2][width];
 
-  for (int xx = 0; xx < width; xx++) {
-    possibilities[0][xx] = 0;
-    possibilities[1][xx] = 0;
+  for (int c = 0; c < width; c++) {
+    possibilities[0][c] = 0;
+    possibilities[1][c] = 0;
   }
 
-  int height = (size + 1) / (width + 1);
+  // walk top to bottom
   for (int y = 1; y < height; y++) {
-      // reset possibility counter
+    int this_row = y % 2;
+    int prev_row = (y + 1) % 2;
+
+    // reset possibility counter
     for (int xx = 0; xx < width; xx++) {
-      possibilities[(y) % 2][xx] = 0;
+      possibilities[this_row][xx] = 0;
     }
+
+    // walk left to right
     for (int x = 0; x < width; x++) {
-      size_t here = x + y * (width + 1);
-      size_t above = x + (y - 1) * (width + 1);
-      size_t left = (x - 1) + (y) * (width + 1);
-      size_t right = (x + 1) + (y) * (width + 1);
+      size_t here = x + y * stride;
+      size_t above = x + (y - 1) * stride;
+      size_t left = (x - 1) + y * stride;
+      size_t right = (x + 1) + y * stride;
+
+      // check tile above
       switch (buffer[above]) {
       case 'S':
-        possibilities[((y + 1) % 2)][x] = 1;
+        // initialize path count for cell below S
+        possibilities[prev_row][x] = 1;
       case '|': {
+        // ray coming from above
         switch (buffer[here]) {
         case '|':
         case '.': {
+          // set current cell to ray
           buffer[here] = '|';
-          possibilities[(y % 2)][x] += possibilities[((y + 1) % 2)][x];
+          // and increase path count by aboves path count
+          possibilities[(y % 2)][x] += possibilities[prev_row][x];
         } break;
         case '^': {
-          total_sum++;
+          // propagate ray to neighors
           buffer[left] = '|';
           buffer[right] = '|';
-          possibilities[((y) % 2)][x - 1] += possibilities[((y + 1) % 2)][x];
-          possibilities[((y) % 2)][x + 1] += possibilities[((y + 1) % 2)][x];
+          // increases split count
+          split_count++;
+          // increase path count
+          possibilities[this_row][x - 1] += possibilities[prev_row][x];
+          possibilities[this_row][x + 1] += possibilities[prev_row][x];
         } break;
         }
-
-      } break;
-      case '.': {
 
       } break;
       }
     }
   }
   if (count_paths) {
-    long long possibility_sum = 0;
+    long long path_count = 0;
     for (int xx = 0; xx < width; xx++) {
-      possibility_sum += possibilities[1][xx];
+      path_count += possibilities[1][xx];
     }
-    return possibility_sum;
+    return path_count;
   } else {
-    return total_sum;
+    return split_count;
   }
 }
