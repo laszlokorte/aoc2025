@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-// #define DEBUG(a, b) {};
-#define DEBUG(a, b) printf(a, b);
+#define DEBUG(a, b) {};
+//#define DEBUG(a, b) printf(a, b);
 
 long long calc(size_t size, char *buffer, bool remove);
 

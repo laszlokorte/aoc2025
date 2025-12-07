@@ -5,28 +5,19 @@
 #include "day.h"
 
 #ifdef DAY
-#define DAY_DIR XSTR(DAY)
 #include XSTR(DAY.c)
 #else
-#define DAY_DIR "."
 #endif
 
 int main(int argc, char **args) {
   if (argc < 2) {
-    fprintf(stderr, "Usage: %s [example|prod]\n", args[0]);
+    fprintf(stderr, "Usage: %s [input_file]\n", args[0]);
   }
-  char *day = DAY_DIR;
-  size_t day_length = strlen(day);
   for (int i = 1; i < argc; i++) {
     char *filename = args[i];
-    size_t filename_length = strlen(filename);
-    char with_extension[day_length + 1 + filename_length + 5];
-    sprintf(with_extension, "%s/%s.txt", day, filename);
-
-    printf("%s\n", with_extension);
-    FILE *f = fopen(with_extension, "r");
+    FILE *f = fopen(filename, "r");
     if (!f) {
-      fprintf(stderr, "file not found: %s\n", with_extension);
+      fprintf(stderr, "file not found: %s\n", filename);
       continue;
     }
     fseek(f, 0L, SEEK_END);
