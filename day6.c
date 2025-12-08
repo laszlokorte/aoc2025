@@ -18,15 +18,14 @@ struct paper_size calc_size(size_t size, char *buffer) {
   int pos = 0;
   while (buffer[pos] != '\0' && pos <= (int)size) {
     if (buffer[pos] == '\n') {
-      line_length = 1;
+      line_length = line_length ?: (pos + 1);
       line_count++;
       last_line_start = pos + 1;
     }
-    line_length++;
     pos++;
   }
 
-  struct paper_size paper = {0};
+  struct paper_size paper = {};
   paper.line_count = line_count;
   paper.line_length = line_length;
   paper.last_line_start = last_line_start;

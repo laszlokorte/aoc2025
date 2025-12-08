@@ -115,31 +115,31 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   int remaining_trys = node_count < 50 ? 10 : 1000;
 
   for (size_t e = 0; e < edge_count; e++) {
+    // convert edge index to source and target ode
     size_t edge_id = g.edges.edge_ids[e];
     size_t n1 = edge_id % node_count;
     size_t n2 = edge_id / node_count;
+
     // for part 1 break early
     if (!to_the_end && remaining_trys <= 0) {
       break;
     }
-    // Skip reflexive Edges
 
+    // Skip reflexive Edges
     if (n1 >= n2) {
       continue;
     }
 
     remaining_trys--;
 
-    DEBUG("%d, try connect %lu to %lu\n", remaining_trys, n1, n2);
-    if (!uf_union(g.edges.union_find_parent, g.edges.union_find_size, n1, n2)) {
-      DEBUG("already connected\n");
-    }
+    // try to connect components
+    uf_union(g.edges.union_find_parent, g.edges.union_find_size, n1, n2);
 
-    // check if graph is fully connected now
-    if (to_the_end) {
-      if (g.edges.union_find_size[uf_find(g.edges.union_find_parent, n1)] == node_count) {
-        return g.nodes.content[n1][0] * g.nodes.content[n2][0];
-      }
+    // for part 2: stop if graph is fully connected now
+    if (g.edges.union_find_size[uf_find(g.edges.union_find_parent, n1)] ==
+        node_count) {
+      // calculate solution value for part 2 as product of x coords
+      return g.nodes.content[n1][0] * g.nodes.content[n2][0];
     }
   }
 
@@ -165,38 +165,27 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   return product;
 }
 
+// length of edge e by L2 dist between nodes
+long long euclid(size_t e, struct nodelist nodes) {
+  long long l = 0;
+  size_t n1 = e % nodes.length;
+  size_t n2 = e / nodes.length;
+  for (int d = 0; d < DIMS; d++) {
+    long long sub = nodes.content[n1][d] - nodes.content[n2][d];
+    l += sub * sub;
+  }
+  return l;
+}
+
+// compare two edges by their length
 int compare_edge_length(void *n, const void *a, const void *b) {
   struct nodelist nodes = *(struct nodelist *)n;
-  long long l1 = 0;
-  long long l2 = 0;
   size_t e1 = *(size_t *)a;
   size_t e2 = *(size_t *)b;
-  // length of the first edge via euclidean (L2)
-  {
-    size_t n1 = e1 % nodes.length;
-    size_t n2 = e1 / nodes.length;
-    for (int d = 0; d < 3; d++) {
-      long long sub = nodes.content[n1][d] - nodes.content[n2][d];
-      l1 += sub * sub;
-    }
-  }
-  // length of the second edge via euclidean (L2)
-  {
-    size_t n1 = e2 % nodes.length;
-    size_t n2 = e2 / nodes.length;
-    for (int d = 0; d < 3; d++) {
-      long long sub = nodes.content[n1][d] - nodes.content[n2][d];
-      l2 += sub * sub;
-    }
-  }
+  long long l1 = euclid(e1, nodes);
+  long long l2 = euclid(e2, nodes);
 
-  if (l1 > l2) {
-    return 1;
-  } else if (l1 < l2) {
-    return -1;
-  } else {
-    return 0;
-  }
+  return (l1 > l2) - (l1 < l2);
 }
 
 // find topmost parent of x in its component

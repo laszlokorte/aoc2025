@@ -17,7 +17,7 @@ long long calc(size_t size, char *buffer, bool remove) {
          line_length <= (int)size) {
     line_length++;
   }
-  int line_count = size / (line_length + 1);
+  int line_count = size / line_length;
 
   while (1) {
     int removed = 0;
