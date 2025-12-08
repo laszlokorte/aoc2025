@@ -25,7 +25,7 @@ int main(int argc, char **args) {
     rewind(f);
     char *content = (char *)malloc(size + 1);
     fread(content, 1, size, f);
-    content[size - 1] = 0;
+    content[size] = 0;
     fclose(f);
 
     printf("result part1 [%s]: %llu\n", filename, part1(size, content));
