@@ -20,11 +20,31 @@ int main(int argc, char **args) {
       fprintf(stderr, "file not found: %s\n", filename);
       continue;
     }
-    fseek(f, 0L, SEEK_END);
-    size_t size = ftell(f);
+    if (fseek(f, 0L, SEEK_END) != 0) {
+      fprintf(stderr, "fseek failed");
+      fclose(f);
+      continue;
+    }
+    long size = ftell(f);
+    if (size < 0) {
+      fprintf(stderr, "ftell failed");
+      fclose(f);
+      continue;
+    }
     rewind(f);
     char *content = (char *)malloc(size + 1);
-    fread(content, 1, size, f);
+    if (!content) {
+      fprintf(stderr, "Could not allocate memory to read file");
+      fclose(f);
+      continue;
+    }
+    long r = fread(content, 1, size, f);
+    if(r != size) {
+      fprintf(stderr, "fread failed for %s\n", filename);
+      free(content);
+      fclose(f);
+      continue;
+    }
     content[size] = 0;
     fclose(f);
 
