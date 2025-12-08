@@ -6,6 +6,9 @@
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
+#define DIMS 3
+#define MAXS 3
+
 long long calc(size_t size, char *buffer, bool to_the_end);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
@@ -19,21 +22,26 @@ size_t uf_find(size_t *parent, size_t x);
 bool uf_union(size_t *parent, size_t *size, size_t x, size_t y);
 
 // a node with 3d coords
-typedef int node[3];
+typedef int node[DIMS];
 
 // list of nodes
 struct nodelist {
   size_t length;
   node *content;
 };
+// list of nodes
+struct edgelist {
+  size_t length;
+  size_t *edge_ids;
+  size_t *union_find_parent;
+  size_t *union_find_size;
+};
 
 // structure to store nodes and edges
 // and union find data
 struct graph {
   struct nodelist nodes;
-  size_t *edge_ids;
-  size_t *union_find_parent;
-  size_t *union_find_size;
+  struct edgelist edges;
 };
 
 // allocate memory for graph in one chunk
@@ -45,21 +53,21 @@ void alloc_graph(struct graph *g, size_t node_count) {
   size_t *edge_storage = graph_storage;
   size_t *node_storage = graph_storage + node_count * (2 * node_count);
 
-  (*g).nodes.length = node_count;
-  (*g).nodes.content = (node *)node_storage;
-  (*g).edge_ids = edge_storage + 2 * node_count;
-  (*g).union_find_parent = edge_storage + node_count;
-  (*g).union_find_size = edge_storage;
+  g->nodes.length = node_count;
+  g->nodes.content = (node *)node_storage;
+  g->edges.edge_ids = edge_storage + 2 * node_count;
+  g->edges.union_find_parent = edge_storage + node_count;
+  g->edges.union_find_size = edge_storage;
 
   // initialize edge ids
   for (size_t e = 0; e < edge_count; e++) {
-    (*g).edge_ids[e] = e;
+    g->edges.edge_ids[e] = e;
   }
 
   // init union find
   for (size_t u = 0; u < node_count; u++) {
-    (*g).union_find_parent[u] = u;
-    (*g).union_find_size[u] = 1;
+    g->edges.union_find_parent[u] = u;
+    g->edges.union_find_size[u] = 1;
   }
 }
 
@@ -86,7 +94,7 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
     // parse each line into a node struct
     int c = 0;
     for (size_t l = 0; l < node_count; l++) {
-      for (size_t d = 0; d < 3; d++) {
+      for (size_t d = 0; d < DIMS; d++) {
         int accum = 0;
         while (buffer[c] != '\0' && c <= (int)size && buffer[c] != '\n' &&
                buffer[c] != ',') {
@@ -100,14 +108,14 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   }
 
   // sort edge ids by their length
-  qsort_r(g.edge_ids, edge_count, sizeof(g.edge_ids[0]), &g.nodes,
+  qsort_r(g.edges.edge_ids, edge_count, sizeof(g.edges.edge_ids[0]), &g.nodes,
           &compare_edge_length);
 
   // for test case only process the first 10 edges 1000 for the real task
   int remaining_trys = node_count < 50 ? 10 : 1000;
 
   for (size_t e = 0; e < edge_count; e++) {
-    size_t edge_id = g.edge_ids[e];
+    size_t edge_id = g.edges.edge_ids[e];
     size_t n1 = edge_id % node_count;
     size_t n2 = edge_id / node_count;
     // for part 1 break early
@@ -115,6 +123,7 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
       break;
     }
     // Skip reflexive Edges
+
     if (n1 >= n2) {
       continue;
     }
@@ -122,13 +131,13 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
     remaining_trys--;
 
     DEBUG("%d, try connect %lu to %lu\n", remaining_trys, n1, n2);
-    if (!uf_union(g.union_find_parent, g.union_find_size, n1, n2)) {
+    if (!uf_union(g.edges.union_find_parent, g.edges.union_find_size, n1, n2)) {
       DEBUG("already connected\n");
     }
 
     // check if graph is fully connected now
     if (to_the_end) {
-      if (g.union_find_size[uf_find(g.union_find_parent, n1)] == node_count) {
+      if (g.edges.union_find_size[uf_find(g.edges.union_find_parent, n1)] == node_count) {
         return g.nodes.content[n1][0] * g.nodes.content[n2][0];
       }
     }
@@ -138,15 +147,15 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   size_t product = 1;
   size_t prev_max = SIZE_MAX;
   size_t max = 0;
-  for (size_t m = 0; m < 3; m++) {
+  for (size_t m = 0; m < MAXS; m++) {
     for (size_t u = 0; u < node_count; u++) {
-      if (u != uf_find(g.union_find_parent, u)) {
+      if (u != uf_find(g.edges.union_find_parent, u)) {
         continue;
       }
 
-      if (max < g.union_find_size[u] &&
-          (m == 0 || g.union_find_size[u] < prev_max)) {
-        max = g.union_find_size[u];
+      if (max < g.edges.union_find_size[u] &&
+          (m == 0 || g.edges.union_find_size[u] < prev_max)) {
+        max = g.edges.union_find_size[u];
       }
     }
     prev_max = max;
@@ -162,7 +171,7 @@ int compare_edge_length(void *n, const void *a, const void *b) {
   long long l2 = 0;
   size_t e1 = *(size_t *)a;
   size_t e2 = *(size_t *)b;
-  // length of the first edge
+  // length of the first edge via euclidean (L2)
   {
     size_t n1 = e1 % nodes.length;
     size_t n2 = e1 / nodes.length;
@@ -171,7 +180,7 @@ int compare_edge_length(void *n, const void *a, const void *b) {
       l1 += sub * sub;
     }
   }
-  // length of the second edge
+  // length of the second edge via euclidean (L2)
   {
     size_t n1 = e2 % nodes.length;
     size_t n2 = e2 / nodes.length;
