@@ -27,60 +27,87 @@ struct nodelist {
   node *content;
 };
 
-long long calc(size_t size, char *buffer, bool to_the_end) {
-  size_t line_count = 1;
-  int pos = 0;
-  // count lines of input text
-  while (buffer[pos] != '\0' && pos <= (int)size) {
-    if (buffer[pos] == '\n') {
-      line_count++;
-    }
-    pos++;
+// structure to store nodes and edges
+// and union find data
+struct graph {
+  struct nodelist nodes;
+  size_t *edge_ids;
+  size_t *union_find_parent;
+  size_t *union_find_size;
+};
+
+// allocate memory for graph in one chunk
+void alloc_graph(struct graph *g, size_t node_count) {
+  size_t edge_count = node_count * node_count;
+  size_t *graph_storage =
+      malloc(node_count * (node_count + 2) * node_count * sizeof(size_t) +
+             node_count * sizeof(node));
+  size_t *edge_storage = graph_storage;
+  size_t *node_storage = graph_storage + node_count * (2 * node_count);
+
+  (*g).nodes.length = node_count;
+  (*g).nodes.content = (node *)node_storage;
+  (*g).edge_ids = edge_storage + 2 * node_count;
+  (*g).union_find_parent = edge_storage + node_count;
+  (*g).union_find_size = edge_storage;
+
+  // initialize edge ids
+  for (size_t e = 0; e < edge_count; e++) {
+    (*g).edge_ids[e] = e;
   }
 
-  size_t node_count = line_count;
+  // init union find
+  for (size_t u = 0; u < node_count; u++) {
+    (*g).union_find_parent[u] = u;
+    (*g).union_find_size[u] = 1;
+  }
+}
+
+long long calc(size_t size, char *buffer, bool to_the_end) {
+  size_t node_count = 1;
+  {
+    // count lines of input text
+    int pos = 0;
+    while (buffer[pos] != '\0' && pos <= (int)size) {
+      if (buffer[pos] == '\n') {
+        node_count++;
+      }
+      pos++;
+    }
+  }
+
   size_t edge_count = node_count * node_count;
-  struct nodelist nodes = {};
-  nodes.length = node_count;
-  nodes.content = malloc(node_count * sizeof(nodes));
-  int c = 0;
-  // parse each line into a node struct
-  for (size_t l = 0; l < line_count; l++) {
-    for (size_t d = 0; d < 3; d++) {
-      int accum = 0;
-      while (buffer[c] != '\0' && c <= (int)size && buffer[c] != '\n' &&
-             buffer[c] != ',') {
-        accum = accum * 10 + (buffer[c] - '0');
+
+  // init graph
+  struct graph g = {};
+  alloc_graph(&g, node_count);
+
+  {
+    // parse each line into a node struct
+    int c = 0;
+    for (size_t l = 0; l < node_count; l++) {
+      for (size_t d = 0; d < 3; d++) {
+        int accum = 0;
+        while (buffer[c] != '\0' && c <= (int)size && buffer[c] != '\n' &&
+               buffer[c] != ',') {
+          accum = accum * 10 + (buffer[c] - '0');
+          c++;
+        }
+        g.nodes.content[l][d] = accum;
         c++;
       }
-      nodes.content[l][d] = accum;
-      c++;
     }
   }
 
-  // create list of edge ids
-  size_t *edge_ids = malloc(node_count * node_count * sizeof(edge_ids[0]));
-  for (size_t e = 0; e < edge_count; e++) {
-    edge_ids[e] = e;
-  }
   // sort edge ids by their length
-  qsort_r(edge_ids, edge_count, sizeof(edge_ids[0]), &nodes,
+  qsort_r(g.edge_ids, edge_count, sizeof(g.edge_ids[0]), &g.nodes,
           &compare_edge_length);
-
-  // initialize union find
-  size_t *union_find_parent = malloc(node_count * sizeof(size_t));
-  size_t *union_find_size = malloc(node_count * sizeof(size_t));
-
-  for (size_t u = 0; u < node_count; u++) {
-    union_find_parent[u] = u;
-    union_find_size[u] = 1;
-  }
 
   // for test case only process the first 10 edges 1000 for the real task
   int remaining_trys = node_count < 50 ? 10 : 1000;
 
   for (size_t e = 0; e < edge_count; e++) {
-    size_t edge_id = edge_ids[e];
+    size_t edge_id = g.edge_ids[e];
     size_t n1 = edge_id % node_count;
     size_t n2 = edge_id / node_count;
     // for part 1 break early
@@ -95,14 +122,14 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
     remaining_trys--;
 
     DEBUG("%d, try connect %lu to %lu\n", remaining_trys, n1, n2);
-    if (!uf_union(union_find_parent, union_find_size, n1, n2)) {
+    if (!uf_union(g.union_find_parent, g.union_find_size, n1, n2)) {
       DEBUG("already connected\n");
     }
 
     // check if graph is fully connected now
     if (to_the_end) {
-      if (union_find_size[uf_find(union_find_parent, n1)] == node_count) {
-        return nodes.content[n1][0] * nodes.content[n2][0];
+      if (g.union_find_size[uf_find(g.union_find_parent, n1)] == node_count) {
+        return g.nodes.content[n1][0] * g.nodes.content[n2][0];
       }
     }
   }
@@ -113,13 +140,13 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   size_t max = 0;
   for (size_t m = 0; m < 3; m++) {
     for (size_t u = 0; u < node_count; u++) {
-      if (u != uf_find(union_find_parent, u)) {
+      if (u != uf_find(g.union_find_parent, u)) {
         continue;
       }
 
-      if (max < union_find_size[u] &&
-          (m == 0 || union_find_size[u] < prev_max)) {
-        max = union_find_size[u];
+      if (max < g.union_find_size[u] &&
+          (m == 0 || g.union_find_size[u] < prev_max)) {
+        max = g.union_find_size[u];
       }
     }
     prev_max = max;
@@ -128,12 +155,14 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
 
   return product;
 }
+
 int compare_edge_length(void *n, const void *a, const void *b) {
   struct nodelist nodes = *(struct nodelist *)n;
   long long l1 = 0;
   long long l2 = 0;
   size_t e1 = *(size_t *)a;
   size_t e2 = *(size_t *)b;
+  // length of the first edge
   {
     size_t n1 = e1 % nodes.length;
     size_t n2 = e1 / nodes.length;
@@ -142,6 +171,7 @@ int compare_edge_length(void *n, const void *a, const void *b) {
       l1 += sub * sub;
     }
   }
+  // length of the second edge
   {
     size_t n1 = e2 % nodes.length;
     size_t n2 = e2 / nodes.length;
@@ -160,11 +190,14 @@ int compare_edge_length(void *n, const void *a, const void *b) {
   }
 }
 
+// find topmost parent of x in its component
 size_t uf_find(size_t *parent, size_t x) {
   if (parent[x] != x)
     parent[x] = uf_find(parent, parent[x]);
   return parent[x];
 }
+
+// merge node x and y if not already in same component
 bool uf_union(size_t *parent, size_t *size, size_t x, size_t y) {
   x = uf_find(parent, x);
   y = uf_find(parent, y);
@@ -180,5 +213,6 @@ bool uf_union(size_t *parent, size_t *size, size_t x, size_t y) {
 
   parent[y] = x;
   size[x] += size[y];
+
   return true;
 }
