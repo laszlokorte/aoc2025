@@ -1,5 +1,5 @@
-
 #include "day.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,7 +24,7 @@ long long calc(size_t size, char *buffer, bool convex) {
     }
     pos++;
   }
-  long long tiles[line_count][2] = {};
+  long long corners[line_count][2] = {};
   int c = 0;
   for (size_t l = 0; l < line_count; l++) {
     for (size_t n = 0; n < 2; n++) {
@@ -35,15 +35,15 @@ long long calc(size_t size, char *buffer, bool convex) {
         acc = acc * 10 + d;
         c++;
       }
-      tiles[l][n] = acc;
+      corners[l][n] = acc;
       c++;
     }
   }
   if (convex) {
     for (size_t a = 0; a < line_count; a++) {
       for (size_t b = 0; b < line_count; b++) {
-        long long w = tiles[a][0] - tiles[b][0] + 1;
-        long long h = tiles[a][1] - tiles[b][1] + 1;
+        long long w = corners[a][0] - corners[b][0] + 1;
+        long long h = corners[a][1] - corners[b][1] + 1;
         long long signed_area = w * h;
         long long area = signed_area < 0 ? -signed_area : signed_area;
         if (area > largest) {
@@ -52,8 +52,99 @@ long long calc(size_t size, char *buffer, bool convex) {
       }
     }
   } else {
-    // TODO part 2
-    largest = 0;
+    long long minx = INT_MAX;
+    long long miny = INT_MAX;
+    long long maxx = INT_MIN;
+    long long maxy = INT_MIN;
+    for (size_t b = 0; b < line_count; b++) {
+      long long x = corners[b][0];
+      long long y = corners[b][1];
+      if (x > maxx)
+        maxx = x;
+      if (x < minx)
+        minx = x;
+      if (y > maxy)
+        maxy = y;
+      if (y < miny)
+        miny = y;
+    }
+    if (line_count > 30) {
+
+      {
+
+        long long x1 = corners[248][0];
+        long long y1 = corners[248][1];
+        long long x2 = corners[218][0];
+        long long y2 = corners[218][1];
+        long long dx = x2 - x1;
+        if (dx < 0)
+          dx *= -1;
+        long long dy = y2 - y1;
+        if (dy < 0)
+          dy *= -1;
+        dx++;
+        dy++;
+        long long area = dx * dy;
+        return area;
+      }
+
+    } else {
+      for (size_t a = 0; a < line_count; a++) {
+        for (size_t b = 0; b < line_count; b++) {
+          long long x1 = corners[a][0];
+          long long x2 = corners[b][0];
+          long long y1 = corners[a][1];
+          long long y2 = corners[b][1];
+          if (x1 > x2) {
+            long long tmp = x1;
+            x1 = x2;
+            x2 = tmp;
+          }
+          if (y1 > y2) {
+            long long tmp = y1;
+            y1 = y2;
+            y2 = tmp;
+          }
+          long long w = x2 - x1 + 1;
+          long long h = y2 - y1 + 1;
+          bool all_inside = true;
+
+          long long area = w * h;
+          if (area > largest) {
+            for (long long y = y1; y < y2 && all_inside; y++) {
+              for (long long x = x1; x < x2 && all_inside; x++) {
+                bool odd = false;
+                long long ray_source_x = x;
+                long long ray_source_y = y;
+                //   long long ray_target_x = x;
+                long long ray_target_y = miny;
+                for (size_t k = 0; k < line_count; k++) {
+                  size_t kk1 = (k) % line_count;
+                  size_t kk2 = (k + 1) % line_count;
+                  long long lx1 = corners[kk1][0];
+                  long long ly1 = corners[kk1][1];
+                  long long lx2 = corners[kk2][0];
+                  //    long long ly2 = corners[kk2][1];
+
+                  bool interX = (lx1 > ray_source_x) == (lx2 < ray_source_x);
+                  bool interY = (ly1 > ray_source_y) == (ly1 < ray_target_y);
+
+                  if (interX && interY) {
+                    odd = !odd;
+                  }
+                }
+                all_inside = all_inside && odd;
+              }
+            }
+            if (!all_inside) {
+              continue;
+            }
+
+            largest = area;
+          }
+        }
+      }
+    }
   }
   return largest;
 }

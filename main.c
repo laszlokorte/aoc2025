@@ -47,8 +47,15 @@ int main(int argc, char **args) {
     content[size] = 0;
     fclose(f);
 
-    printf("result part1 [%s]: %llu\n", filename, part1(size, content));
-    printf("result part2 [%s]: %llu\n", filename, part2(size, content));
+    long long result1 = part1(size, content);
+    long long result2 = part2(size, content);
+
+    if (result1 || result2) {
+    }
+#ifndef NOOUTPUT
+    printf("result part1 [%s]: %llu\n", filename, result1);
+    printf("result part2 [%s]: %llu\n", filename, result2);
+#endif
     free(content);
   }
   return 0;
