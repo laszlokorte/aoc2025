@@ -3,9 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <stdlib.h>
 
 #define DEBUG(...) {};
@@ -14,17 +11,21 @@
 #define DIMS 3
 #define MAXS 3
 
-long long calc(size_t size, char *buffer, bool to_the_end);
+static long long calc(size_t size, char *buffer, bool to_the_end);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
 
+// custom quicksort for crossplatform compat
+static void quicksort_r(void *base, int low, int high, size_t size,
+                        int (*cmp)(const void *, const void *, void *),
+                        void *arg);
 // helper function: compare edge ids by their edges length
-int compare_edge_length(const void *a, const void *b, void *l);
+static int compare_edge_length(const void *a, const void *b, void *l);
 
 // helper functions: union Find for merging sets of nodes
-size_t uf_find(size_t *parent, size_t x);
-bool uf_union(size_t *parent, size_t *size, size_t x, size_t y);
+static size_t uf_find(size_t *parent, size_t x);
+static bool uf_union(size_t *parent, size_t *size, size_t x, size_t y);
 
 // a node with 3d coords
 typedef long long node[DIMS];
@@ -76,7 +77,7 @@ void alloc_graph(struct graph *g, size_t node_count) {
   }
 }
 
-long long calc(size_t size, char *buffer, bool to_the_end) {
+static long long calc(size_t size, char *buffer, bool to_the_end) {
   size_t node_count = 1;
   {
     // count lines of input text
@@ -113,8 +114,8 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   }
 
   // sort edge ids by their length
-  qsort_r(g.edges.edge_ids, edge_count, sizeof(g.edges.edge_ids[0]),
-          &compare_edge_length, &g.nodes);
+  quicksort_r(g.edges.edge_ids, 0, edge_count, sizeof(g.edges.edge_ids[0]),
+              &compare_edge_length, &g.nodes);
 
   // for test case only process the first 10 edges 1000 for the real task
   int remaining_trys = node_count < 50 ? 10 : 1000;
@@ -171,7 +172,7 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
 }
 
 // length of edge e by L2 dist between nodes
-long long euclid(size_t e, struct nodelist nodes) {
+static long long euclid(size_t e, struct nodelist nodes) {
   long long l = 0;
   size_t n1 = e % nodes.length;
   size_t n2 = e / nodes.length;
@@ -183,7 +184,7 @@ long long euclid(size_t e, struct nodelist nodes) {
 }
 
 // compare two edges by their length
-int compare_edge_length(const void *a, const void *b, void *n) {
+static int compare_edge_length(const void *a, const void *b, void *n) {
   struct nodelist nodes = *(struct nodelist *)n;
   size_t e1 = *(size_t *)a;
   size_t e2 = *(size_t *)b;
@@ -194,14 +195,14 @@ int compare_edge_length(const void *a, const void *b, void *n) {
 }
 
 // find topmost parent of x in its component
-size_t uf_find(size_t *parent, size_t x) {
+static size_t uf_find(size_t *parent, size_t x) {
   if (parent[x] != x)
     parent[x] = uf_find(parent, parent[x]);
   return parent[x];
 }
 
 // merge node x and y if not already in same component
-bool uf_union(size_t *parent, size_t *size, size_t x, size_t y) {
+static bool uf_union(size_t *parent, size_t *size, size_t x, size_t y) {
   x = uf_find(parent, x);
   y = uf_find(parent, y);
   if (x == y)
@@ -218,4 +219,39 @@ bool uf_union(size_t *parent, size_t *size, size_t x, size_t y) {
   size[x] += size[y];
 
   return true;
+}
+
+static inline void swap_bytes(char *a, char *b, size_t size) {
+  while (size--) {
+    char tmp = *a;
+    *a++ = *b;
+    *b++ = tmp;
+  }
+}
+
+static inline int partition(void *base, int low, int high, size_t size,
+                            int (*cmp)(const void *, const void *, void *),
+                            void *arg) {
+  char *arr = base;
+  char *pivot = arr + high * size;
+  int i = low - 1;
+
+  for (int j = low; j < high; j++) {
+    if (cmp(arr + j * size, pivot, arg) <= 0) {
+      i++;
+      swap_bytes(arr + i * size, arr + j * size, size);
+    }
+  }
+  swap_bytes(arr + (i + 1) * size, arr + high * size, size);
+  return i + 1;
+}
+
+static void quicksort_r(void *base, int low, int high, size_t size,
+                        int (*cmp)(const void *, const void *, void *),
+                        void *arg) {
+  if (low < high) {
+    int p = partition(base, low, high, size, cmp, arg);
+    quicksort_r(base, low, p - 1, size, cmp, arg);
+    quicksort_r(base, p + 1, high, size, cmp, arg);
+  }
 }

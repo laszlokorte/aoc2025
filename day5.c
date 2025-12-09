@@ -6,8 +6,8 @@
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
-long long calc(size_t size, char *buffer, bool all_in_ranges);
-int compare_range(const void *a, const void *b);
+static long long calc(size_t size, char *buffer, bool all_in_ranges);
+static int compare_range(const void *a, const void *b);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
@@ -17,7 +17,7 @@ struct range {
   long long end;
 };
 
-long long calc(size_t size, char *buffer, bool all_in_ranges) {
+static long long calc(size_t size, char *buffer, bool all_in_ranges) {
   long long fresh = 0;
 
   // Count total number of ranges
@@ -107,7 +107,7 @@ long long calc(size_t size, char *buffer, bool all_in_ranges) {
 }
 
 // helper to sort ranges lexicographically
-int compare_range(const void *a, const void *b) {
+static int compare_range(const void *a, const void *b) {
   struct range r1 = *(struct range *)a;
   struct range r2 = *(struct range *)b;
   if (r1.start < r2.start)

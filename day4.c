@@ -3,14 +3,14 @@
 #include <stdio.h>
 
 #define DEBUG(a, b) {};
-//#define DEBUG(a, b) printf(a, b);
+// #define DEBUG(a, b) printf(a, b);
 
-long long calc(size_t size, char *buffer, bool remove);
+static long long calc(size_t size, char *buffer, bool remove);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
 
-long long calc(size_t size, char *buffer, bool remove) {
+static long long calc(size_t size, char *buffer, bool remove) {
   long long reachable = 0;
   int line_length = 0;
   while (buffer[line_length] != '\n' && buffer[line_length] != '\0' &&

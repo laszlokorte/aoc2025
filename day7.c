@@ -5,12 +5,12 @@
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
-long long calc(size_t size, char *buffer, bool count_paths);
+static long long calc(size_t size, char *buffer, bool count_paths);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
 
-long long calc(size_t size, char *buffer, bool count_paths) {
+static long long calc(size_t size, char *buffer, bool count_paths) {
   long long split_count = 0;
   int width = 0;
   int pos = 0;

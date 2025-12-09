@@ -2,12 +2,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-long long calc(size_t size, char *buffer, int max_digits);
+static long long calc(size_t size, char *buffer, int max_digits);
 
 long long part1(size_t size, char *buffer) { return calc(size, buffer, 2); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, 12); }
 
-long long calc(size_t size, char *buffer, int max_digits) {
+static long long calc(size_t size, char *buffer, int max_digits) {
   long long sum = 0;
   size_t line_start = 0;
   while (line_start <= size) {

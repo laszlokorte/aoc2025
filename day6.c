@@ -11,7 +11,7 @@ struct paper_size {
   int line_count;
 };
 
-struct paper_size calc_size(size_t size, char *buffer) {
+static struct paper_size calc_size(size_t size, char *buffer) {
   int line_length = 0;
   int last_line_start = 0;
   int line_count = 0;

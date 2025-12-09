@@ -37,7 +37,7 @@ if [ -f "$DAY.c" ]; then
 if [ "$RUNONLY" = false ]; then
   [ -z "$NOOUTPUT" ] &&  echo "Compiling $DAY:"
   [ -z "$NOOUTPUT" ] &&  echo ""
-  gcc -O3 -D_GNU_SOURCE  -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
+  gcc -O3 -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
 fi
  [ -z "$NOOUTPUT" ] && echo "Running $DAY:"
  [ "$RUNTEST" = true ] && ./build/$DAY ./inputs/$DAY/example.txt
