@@ -1,6 +1,10 @@
 #include "day.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <stdlib.h>
 
 #define DEBUG(...) {};
@@ -15,7 +19,7 @@ long long part1(size_t size, char *buffer) { return calc(size, buffer, false); }
 long long part2(size_t size, char *buffer) { return calc(size, buffer, true); }
 
 // helper function: compare edge ids by their edges length
-int compare_edge_length(void *l, const void *a, const void *b);
+int compare_edge_length(const void *a, const void *b, void *l);
 
 // helper functions: union Find for merging sets of nodes
 size_t uf_find(size_t *parent, size_t x);
@@ -108,8 +112,8 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   }
 
   // sort edge ids by their length
-  qsort_r(g.edges.edge_ids, edge_count, sizeof(g.edges.edge_ids[0]), &g.nodes,
-          &compare_edge_length);
+  qsort_r(g.edges.edge_ids, edge_count, sizeof(g.edges.edge_ids[0]),
+          &compare_edge_length, &g.nodes);
 
   // for test case only process the first 10 edges 1000 for the real task
   int remaining_trys = node_count < 50 ? 10 : 1000;
@@ -178,7 +182,7 @@ long long euclid(size_t e, struct nodelist nodes) {
 }
 
 // compare two edges by their length
-int compare_edge_length(void *n, const void *a, const void *b) {
+int compare_edge_length(const void *a, const void *b, void *n) {
   struct nodelist nodes = *(struct nodelist *)n;
   size_t e1 = *(size_t *)a;
   size_t e2 = *(size_t *)b;

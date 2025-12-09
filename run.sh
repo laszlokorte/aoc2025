@@ -28,12 +28,14 @@ fi
 for DAY in $DAYS
 do
 mkdir -p build
+if [ -f "$DAY.c" ]; then
 if [ "$RUNONLY" = false ]; then
   echo "Compiling $DAY:"
   echo ""
-  gcc -O3 -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
+  gcc -O3 -D_GNU_SOURCE  -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
 fi
 echo "Running $DAY:"
 ./build/$DAY ./inputs/$DAY/example.txt
 ./build/$DAY ./inputs/$DAY/prod.txt
+fi
 done

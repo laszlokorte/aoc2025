@@ -53,6 +53,7 @@ long long calc(size_t size, char *buffer, bool count_paths) {
       case 'S':
         // initialize path count for cell below S
         possibilities[prev_row][x] = 1;
+        __attribute__((fallthrough));
       case '|': {
         // ray coming from above
         switch (buffer[here]) {

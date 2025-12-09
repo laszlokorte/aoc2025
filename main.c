@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "day.h"
 
@@ -39,7 +38,7 @@ int main(int argc, char **args) {
       continue;
     }
     long r = fread(content, 1, size, f);
-    if(r != size) {
+    if (r != size) {
       fprintf(stderr, "fread failed for %s\n", filename);
       free(content);
       fclose(f);
