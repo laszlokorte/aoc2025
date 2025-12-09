@@ -69,25 +69,59 @@ long long calc(size_t size, char *buffer, bool convex) {
         miny = y;
     }
     if (line_count > 30) {
+      // we know points make up a circle with a thin bar sliced out
+      // step 1 find the end points of the bar:
 
-      {
+      long long aprox_diam = (maxx - minx);
+      long long aprox_rad_squared = aprox_diam * aprox_diam / 4;
 
-        long long x1 = corners[248][0];
-        long long y1 = corners[248][1];
-        long long x2 = corners[218][0];
-        long long y2 = corners[218][1];
+      size_t inner_points[2] = {};
+      size_t ip = 0;
+      for (size_t j = 0; j < line_count; j++) {
+        size_t jj = (j + 1) % line_count;
+        long long x1 = corners[j][0];
+        long long x2 = corners[jj][0];
         long long dx = x2 - x1;
-        if (dx < 0)
-          dx *= -1;
-        long long dy = y2 - y1;
-        if (dy < 0)
-          dy *= -1;
-        dx++;
-        dy++;
-        long long area = dx * dy;
-        return area;
+        long long dxsq = dx * dx;
+        if (dxsq > aprox_rad_squared / 2) {
+          // we found the inner to points
+          if (x2 > x1) {
+            inner_points[ip++] = jj;
+          } else {
+            inner_points[ip++] = j;
+          }
+        }
       }
+      for (size_t h = 0; h < ip; h++) {
+        long long self_x = corners[inner_points[h]][0];
+        long long self_y = corners[inner_points[h]][1];
+        long long other_y = corners[inner_points[1 - h]][1];
+        long long dir = self_y > other_y ? 1 : -1;
+        long long best_y = self_y;
+        for (size_t v = 0; v < line_count; v++) {
+          if (corners[v][0] > self_x && corners[v][1] * dir > dir * best_y) {
+            best_y = corners[v][1];
+          }
+        }
 
+        for (size_t w = 0; w < line_count; w++) {
+          if (corners[w][1] * dir <= dir * best_y &&
+              corners[w][1] * dir > dir * self_y) {
+            long long check_x = corners[w][0];
+            long long check_y = corners[w][1];
+            long long dx = check_x - self_x;
+            long long dy = check_y - self_y;
+            if (dx < 0)
+              dx *= -1;
+            if (dy < 0)
+              dy *= -1;
+            long long area = (dx + 1) * (dy + 1);
+            if (area > largest) {
+              largest = area;
+            }
+          }
+        }
+      }
     } else {
       for (size_t a = 0; a < line_count; a++) {
         for (size_t b = 0; b < line_count; b++) {
