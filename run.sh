@@ -12,7 +12,7 @@ while getopts ":rstp" opt; do
     s) NOOUTPUT=true ;;
     t) RUNPROD=false ;;
     p) RUNTEST=false ;;
-    *)  [ -z "$NOOUTPUT" ] && echo "Usage: $0 [-r] [-s] [days...]" >&2
+    *)  [ "$NOOUTPUT" = false ] && echo "Usage: $0 [-r] [-s] [days...]" >&2
        exit 1 ;;
   esac
 done
@@ -21,13 +21,13 @@ done
 shift $((OPTIND - 1))
 if (( $# >= 1 )); then
   DAYS="$@"
-  [ -z "$NOOUTPUT" ] &&  echo "Selected Days: ${DAYS}"
+  [ "$NOOUTPUT" = false ] &&  echo "Selected Days: ${DAYS}"
 else
   ALL_DAYS=(inputs/*)
   ALL_DAYS=("${ALL_DAYS[@]##*/}")
   DAYS="${ALL_DAYS[@]}"
 
-  [ -z "$NOOUTPUT" ] &&  echo "All Days: ${DAYS}"
+  [ "$NOOUTPUT" = false ] &&  echo "All Days: ${DAYS}"
 fi
 
 for DAY in $DAYS
@@ -35,11 +35,11 @@ do
 mkdir -p build
 if [ -f "$DAY.c" ]; then
 if [ "$RUNONLY" = false ]; then
-  [ -z "$NOOUTPUT" ] &&  echo "Compiling $DAY:"
-  [ -z "$NOOUTPUT" ] &&  echo ""
+  [ "$NOOUTPUT" = false ] &&  echo "Compiling $DAY:"
+  [ "$NOOUTPUT" = false ] &&  echo ""
   gcc -O3 -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
 fi
- [ -z "$NOOUTPUT" ] && echo "Running $DAY:"
+ [ "$NOOUTPUT" = false ] && echo "Running $DAY:"
  [ "$RUNTEST" = true ] && ./build/$DAY ./inputs/$DAY/example.txt
  [ "$RUNPROD" = true ] && ./build/$DAY ./inputs/$DAY/prod.txt
 fi
