@@ -1,4 +1,5 @@
 #include "day.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -26,7 +27,7 @@ size_t uf_find(size_t *parent, size_t x);
 bool uf_union(size_t *parent, size_t *size, size_t x, size_t y);
 
 // a node with 3d coords
-typedef int node[DIMS];
+typedef long long node[DIMS];
 
 // list of nodes
 struct nodelist {
@@ -148,18 +149,18 @@ long long calc(size_t size, char *buffer, bool to_the_end) {
   }
 
   // for part one multiply the size of the 3 largest components
-  size_t product = 1;
-  size_t prev_max = SIZE_MAX;
-  size_t max = 0;
+  long long product = 1;
+  long long prev_max = 0;
   for (size_t m = 0; m < MAXS; m++) {
+    long max = 0;
     for (size_t u = 0; u < node_count; u++) {
       if (u != uf_find(g.edges.union_find_parent, u)) {
         continue;
       }
 
-      if (max < g.edges.union_find_size[u] &&
-          (m == 0 || g.edges.union_find_size[u] < prev_max)) {
-        max = g.edges.union_find_size[u];
+      if (max < (long long)g.edges.union_find_size[u] &&
+          (m == 0 || ((long long)g.edges.union_find_size[u]) < prev_max)) {
+        max = (long long)g.edges.union_find_size[u];
       }
     }
     prev_max = max;
