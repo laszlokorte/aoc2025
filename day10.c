@@ -16,7 +16,7 @@ struct search_state {
   unsigned int light_state[16];
 };
 long dfs(unsigned int toggle_mask[32][16], size_t current_button,
-         size_t button_number, struct search_state state, long *cache);
+         size_t button_count, struct search_state state, long *cache);
 long long part1(size_t size, char *buffer) {
   long long sum = 0;
   size_t line_count = 1;
@@ -78,7 +78,7 @@ long long part1(size_t size, char *buffer) {
       unsigned int toggle_count = 0;        // n
       size_t pp = button_start; // reset cursor the position where the first "("
                                 // in the line is
-      unsigned int button_number = 0;
+      unsigned int button_count = 0;
       // parse buttons
       while (buffer[pp] == '(' && pp <= size) {
         unsigned int toggle_mask = 0;
@@ -97,11 +97,11 @@ long long part1(size_t size, char *buffer) {
         }
         // check if we should try to press the button in the
         // current iteration
-        if (comb & (1 << button_number)) {
+        if (comb & (1 << button_count)) {
           toggle_count++;
           current_light_state = current_light_state ^ toggle_mask;
         }
-        button_number++;
+        button_count++;
 
         pp++;
       }
@@ -182,7 +182,7 @@ long long part2(size_t size, char *buffer) {
     //    {};                   // the currenty state of the light
     size_t pp = button_start; // reset cursor the position where the first "("
                               // in the line is
-    unsigned int button_number = 0;
+    unsigned int button_count = 0;
     // parse buttons
     unsigned int toggle_mask[32][16] = {};
     while (buffer[pp] == '(' && pp <= size) {
@@ -195,17 +195,17 @@ long long part2(size_t size, char *buffer) {
           pp++;
         }
         // turn the button labels into a bitset
-        toggle_mask[button_number][accum] = 1;
+        toggle_mask[button_count][accum] = 1;
 
         pp++;
       }
-      button_number++;
+      button_count++;
 
       pp++;
     }
 
     //   printf("buttons: \n");
-    for (size_t bi = 0; bi < button_number; bi++) {
+    for (size_t bi = 0; bi < button_count; bi++) {
       for (size_t li = 0; li < 16; li++) {
         //   printf("%d,", toggle_mask[bi][li]);
       }
@@ -226,25 +226,25 @@ long long part2(size_t size, char *buffer) {
     printf("start dfs\n");
 
     // printf("initial missing total: %d, %d\n", state.missing_total,
-    //       button_number);
+    //       button_count);
     //
     memset(cache, 0, sizeof(long) * CACHE_SIZE);
-    sum += dfs(toggle_mask, 0, button_number, state, cache);
+    sum += dfs(toggle_mask, 0, button_count, state, cache);
   }
 
   return sum;
 }
 long dfs(unsigned int toggle_mask[32][16], size_t current_button,
-         size_t button_number, struct search_state state, long *cache) {
+         size_t button_count, struct search_state state, long *cache) {
 
-  // printf("%lu/%lu, %d\n", current_button, button_number,
+  // printf("%lu/%lu, %d\n", current_button, button_count,
   // state.missing_total);
   if (state.missing_total < 0) {
     return 99999;
   } else if (state.missing_total == 0) {
     return state.presses;
   } else {
-    if (current_button >= button_number) {
+    if (current_button >= button_count) {
       return 99999;
     }
     struct search_state new_state = {};
@@ -271,31 +271,31 @@ long dfs(unsigned int toggle_mask[32][16], size_t current_button,
         return new_state.presses;
       } else {
         long min =
-            dfs(toggle_mask, current_button + 1, button_number, state, cache);
+            dfs(toggle_mask, current_button + 1, button_count, state, cache);
         return min;
       }
     } else if (new_state.missing_total >= 0) {
       // printf("xxx %d\n", new_state.missing_total);
 
-      if (current_button <= button_number) {
+      if (current_button <= button_count) {
         long only_next_button =
-            dfs(toggle_mask, current_button + 1, button_number, state, cache);
+            dfs(toggle_mask, current_button + 1, button_count, state, cache);
         long same_button =
-            dfs(toggle_mask, current_button, button_number, new_state, cache);
-        long next_button = dfs(toggle_mask, current_button + 1, button_number,
+            dfs(toggle_mask, current_button, button_count, new_state, cache);
+        long next_button = dfs(toggle_mask, current_button + 1, button_count,
                                new_state, cache);
         long min = MIN(only_next_button, MIN(same_button, next_button));
 
         return min;
       } else {
         long min =
-            dfs(toggle_mask, current_button, button_number, new_state, cache);
+            dfs(toggle_mask, current_button, button_count, new_state, cache);
 
         return min;
       }
     } else {
       long min =
-          dfs(toggle_mask, current_button + 1, button_number, state, cache);
+          dfs(toggle_mask, current_button + 1, button_count, state, cache);
 
       return min;
     }
