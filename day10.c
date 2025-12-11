@@ -5,18 +5,21 @@
 #include <string.h>
 #include <sys/types.h>
 
+#define CACHE_SIZE 100003
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
-struct search_state {
-  int presses;
-  int missing_total;
-  unsigned int light_state[16];
-};
-long dfs(unsigned int toggle_mask[32][16], size_t current_button,
-         size_t button_count, struct search_state state, long *cache);
+
+typedef struct cache_entry {
+  unsigned long key;
+  int value; // 0 = not solvable, 1 = solvable
+  struct cache_entry *next;
+} cache_entry;
+
+int dfs(unsigned short toggle_mask[32][16], unsigned int remain[16], size_t idx,
+        size_t button_count, cache_entry **cache);
 long long part1(size_t size, char *buffer) {
   long long sum = 0;
   size_t line_count = 1;
@@ -116,7 +119,7 @@ long long part1(size_t size, char *buffer) {
 
   return sum;
 }
-#define CACHE_SIZE 1234556712
+
 long long part2(size_t size, char *buffer) {
   long long sum = 0;
   size_t line_count = 1;
@@ -130,11 +133,10 @@ long long part2(size_t size, char *buffer) {
       pos++;
     }
   }
-  long *cache = (long *)malloc(sizeof(long) * CACHE_SIZE);
-  memset(cache, 0, sizeof(long) * CACHE_SIZE);
+  cache_entry **cache = (cache_entry **)malloc(sizeof(size_t) * CACHE_SIZE);
   size_t p = 0;
   for (size_t l = 0; l < line_count; l++) {
-    // printf("xxx\n");
+    // DEBUG("xxx\n");
     // bitset of turnd on lights
     unsigned int goal_light[16] = {};
     {
@@ -184,7 +186,7 @@ long long part2(size_t size, char *buffer) {
                               // in the line is
     unsigned int button_count = 0;
     // parse buttons
-    unsigned int toggle_mask[32][16] = {};
+    unsigned short toggle_mask[32][16] = {};
     while (buffer[pp] == '(' && pp <= size) {
       pp++;
       // parse each element of the button
@@ -204,100 +206,109 @@ long long part2(size_t size, char *buffer) {
       pp++;
     }
 
-    //   printf("buttons: \n");
+    DEBUG("buttons: \n");
     for (size_t bi = 0; bi < button_count; bi++) {
       for (size_t li = 0; li < 16; li++) {
-        //   printf("%d,", toggle_mask[bi][li]);
+        DEBUG("%d,", toggle_mask[bi][li]);
       }
-      //    printf("\n");
+      DEBUG("\n");
     }
-    // printf("goal: \n");
+    DEBUG("goal: \n");
     for (size_t li = 0; li < 16; li++) {
-      //     printf("%d,", goal_light[li]);
+      DEBUG("%d,", goal_light[li]);
     }
-    //    printf("\n");
+    DEBUG("\n");
 
-    struct search_state state = {};
-    state.presses = 0;
-    for (size_t g = 0; g < 16; g++) {
-      state.light_state[g] = goal_light[g];
-      state.missing_total += goal_light[g];
-    }
-    printf("start dfs\n");
+    DEBUG("start search\n");
 
-    // printf("initial missing total: %d, %d\n", state.missing_total,
+    // DEBUG("initial missing total: %d, %d\n", state.missing_total,
     //       button_count);
     //
-    memset(cache, 0, sizeof(long) * CACHE_SIZE);
-    sum += dfs(toggle_mask, 0, button_count, state, cache);
+    memset(cache, 0, sizeof(size_t) * CACHE_SIZE);
+    int min = dfs(toggle_mask, goal_light, 0, button_count, cache);
+    DEBUG("%d, %d\n", min, button_count);
+
+    sum += min;
   }
 
   return sum;
 }
-long dfs(unsigned int toggle_mask[32][16], size_t current_button,
-         size_t button_count, struct search_state state, long *cache) {
 
-  // printf("%lu/%lu, %d\n", current_button, button_count,
-  // state.missing_total);
-  if (state.missing_total < 0) {
-    return 99999;
-  } else if (state.missing_total == 0) {
-    return state.presses;
-  } else {
-    if (current_button >= button_count) {
-      return 99999;
-    }
-    struct search_state new_state = {};
-    new_state.missing_total = state.missing_total;
-    new_state.presses = state.presses + 1;
+unsigned long hash_state(unsigned int remain[16]) {
+  unsigned long h = 0;
+  for (int i = 0; i < 16; i++) {
+    h = h * 31 + remain[i];
+  }
+  return h;
+}
 
-    for (size_t g = 0; g < 16; g++) {
-      if (toggle_mask[current_button][g] > state.light_state[g]) {
-        new_state.missing_total = -1;
-        break;
-      }
-      new_state.light_state[g] =
-          state.light_state[g] - toggle_mask[current_button][g];
-      new_state.missing_total -= toggle_mask[current_button][g];
-    }
-    if (new_state.missing_total == 0) {
-      bool valid = true;
-      for (size_t g = 0; g < 16 && valid; g++) {
-        if (new_state.light_state[g] != 0) {
-          valid = false;
-        }
-      }
-      if (valid) {
-        return new_state.presses;
-      } else {
-        long min =
-            dfs(toggle_mask, current_button + 1, button_count, state, cache);
-        return min;
-      }
-    } else if (new_state.missing_total >= 0) {
-      // printf("xxx %d\n", new_state.missing_total);
-
-      if (current_button <= button_count) {
-        long only_next_button =
-            dfs(toggle_mask, current_button + 1, button_count, state, cache);
-        long same_button =
-            dfs(toggle_mask, current_button, button_count, new_state, cache);
-        long next_button = dfs(toggle_mask, current_button + 1, button_count,
-                               new_state, cache);
-        long min = MIN(only_next_button, MIN(same_button, next_button));
-
-        return min;
-      } else {
-        long min =
-            dfs(toggle_mask, current_button, button_count, new_state, cache);
-
-        return min;
-      }
-    } else {
-      long min =
-          dfs(toggle_mask, current_button + 1, button_count, state, cache);
-
-      return min;
+// DFS returning minimal number of vectors to reach 'remain'
+int dfs(unsigned short toggle_mask[32][16], unsigned int remain[16], size_t idx,
+        size_t button_count, cache_entry **cache) {
+  int done = 1;
+  for (int i = 0; i < 16; i++) {
+    if (remain[i] != 0) {
+      done = 0;
+      break;
     }
   }
+  if (done) {
+    return 0; // 0 vectors needed for empty target
+  }
+
+  if (idx >= button_count)
+    return -1; // no solution
+
+  // cache lookup
+  unsigned long h = hash_state(remain) ^ idx;
+  unsigned long slot = h % CACHE_SIZE;
+  for (cache_entry *e = cache[slot]; e; e = e->next) {
+    if (e->key == h)
+      return e->value;
+  }
+  int min_count = -1;
+
+  // compute max times we can use this vector
+  int max_take = -1;
+  for (int i = 0; i < 16; i++) {
+    if (toggle_mask[idx][i] == 0)
+      continue; // ignore 0 components
+    int t = remain[i] / toggle_mask[idx][i];
+    if (max_take == -1 || t < max_take)
+      max_take = t;
+  }
+
+  // if max_take == -1, the vector is all zeros, only 0 copies can be used
+  if (max_take == -1) {
+    max_take = 0;
+  }
+
+  for (int take = 0; take <= max_take; take++) {
+    // subtract take copies of the vector
+    for (int i = 0; i < 16; i++) {
+      remain[i] -= take * toggle_mask[idx][i];
+    }
+
+    int res = dfs(toggle_mask, remain, idx + 1, button_count, cache);
+    if (res >= 0) {
+      int total = res + take;
+      if (min_count == -1 || total < min_count) {
+        min_count = total;
+      }
+    }
+
+    // backtrack
+    for (int i = 0; i < 16; i++) {
+      remain[i] += take * toggle_mask[idx][i];
+    }
+  }
+
+  // store in cache
+  cache_entry *e = malloc(sizeof(cache_entry));
+  e->key = h;
+  e->value = min_count;
+  e->next = cache[slot];
+  cache[slot] = e;
+
+  return min_count;
 }
