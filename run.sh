@@ -40,7 +40,13 @@ if [ "$RUNONLY" = false ]; then
   gcc -O3 -Werror -Wall -Wextra -Wuninitialized -D DAY=$DAY main.c -o build/$DAY
 fi
  [ "$NOOUTPUT" = false ] && echo "Running $DAY:"
+
+ if [ "$DAY" == 'day11' ]; then
+   [ "$RUNTEST" = true ] && ./build/$DAY ./inputs/$DAY/example.txt
+   [ "$RUNTEST" = true ] && ./build/$DAY ./inputs/$DAY/example2.txt
+ else
  [ "$RUNTEST" = true ] && ./build/$DAY ./inputs/$DAY/example.txt
+ fi
  [ "$RUNPROD" = true ] && ./build/$DAY ./inputs/$DAY/prod.txt
 fi
 done

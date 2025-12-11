@@ -116,6 +116,7 @@ long long part1(size_t size, char *buffer) {
 
   return sum;
 }
+#define CACHE_SIZE 1234556712
 long long part2(size_t size, char *buffer) {
   long long sum = 0;
   size_t line_count = 1;
@@ -129,7 +130,6 @@ long long part2(size_t size, char *buffer) {
       pos++;
     }
   }
-#define CACHE_SIZE 1234556712
   long *cache = (long *)malloc(sizeof(long) * CACHE_SIZE);
   memset(cache, 0, sizeof(long) * CACHE_SIZE);
   size_t p = 0;
