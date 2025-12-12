@@ -1,25 +1,17 @@
 #include "day.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
-#define CACHE_SIZE 100003
+#define TMP_FILE_NAME "tmp_problem.smt2"
 #define DEBUG(...) {};
 // #define DEBUG(...) printf(__VA_ARGS__);
 
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
 
-typedef struct cache_entry {
-  unsigned long key;
-  int value; // 0 = not solvable, 1 = solvable
-  struct cache_entry *next;
-} cache_entry;
-
-int dfs(unsigned short toggle_mask[32][16], unsigned int remain[16], size_t idx,
-        size_t button_count, cache_entry **cache);
 long long part1(size_t size, char *buffer) {
   long long sum = 0;
   size_t line_count = 1;
@@ -133,7 +125,6 @@ long long part2(size_t size, char *buffer) {
       pos++;
     }
   }
-  cache_entry **cache = (cache_entry **)malloc(sizeof(size_t) * CACHE_SIZE);
   size_t p = 0;
   for (size_t l = 0; l < line_count; l++) {
     // DEBUG("xxx\n");
@@ -180,8 +171,6 @@ long long part2(size_t size, char *buffer) {
       }
       p++;
     }
-    // unsigned int current_light_state[16] =
-    //    {};                   // the currenty state of the light
     size_t pp = button_start; // reset cursor the position where the first "("
                               // in the line is
     unsigned int button_count = 0;
@@ -206,109 +195,89 @@ long long part2(size_t size, char *buffer) {
       pp++;
     }
 
-    DEBUG("buttons: \n");
-    for (size_t bi = 0; bi < button_count; bi++) {
-      for (size_t li = 0; li < 16; li++) {
-        DEBUG("%d,", toggle_mask[bi][li]);
+    // use z3 solver
+    // create file to write the problem into
+    FILE *tmp = fopen(TMP_FILE_NAME, "w");
+
+    if (!tmp) {
+      return 1;
+    }
+    int min = 0;
+    {
+      // define a variable for each button
+      for (size_t bi = 0; bi < button_count; bi++) {
+        fprintf(tmp, "(declare-const x%lu Int)\n", bi);
       }
-      DEBUG("\n");
+
+      fprintf(tmp, "\n");
     }
-    DEBUG("goal: \n");
+    {
+
+      // require number of button presses to be positive
+      for (size_t bi = 0; bi < button_count; bi++) {
+        fprintf(tmp, "(assert (>= x%lu 0))\n", bi);
+      }
+
+      fprintf(tmp, "\n");
+    }
+
+    // for each target joltage require the number
+    // of relevant button presses to sum to the exact value
     for (size_t li = 0; li < 16; li++) {
-      DEBUG("%d,", goal_light[li]);
+      fprintf(tmp, "(assert (= (+");
+      for (size_t bi = 0; bi < button_count; bi++) {
+        fprintf(tmp, " (* x%lu %d)", bi, toggle_mask[bi][li]);
+      }
+
+      fprintf(tmp, ") %d))", goal_light[li]);
+      fprintf(tmp, "\n");
     }
-    DEBUG("\n");
+    {
+      // minimize the total number of button presses
+      fprintf(tmp, "(minimize (+");
+      for (size_t bi = 0; bi < button_count; bi++) {
+        fprintf(tmp, " x%lu", bi);
+      }
 
-    DEBUG("start search\n");
-
-    // DEBUG("initial missing total: %d, %d\n", state.missing_total,
-    //       button_count);
-    //
-    memset(cache, 0, sizeof(size_t) * CACHE_SIZE);
-    int min = dfs(toggle_mask, goal_light, 0, button_count, cache);
-    DEBUG("%d, %d\n", min, button_count);
-
+      fprintf(tmp, "))\n");
+    }
+    // run the solver
+    fprintf(tmp, "(check-sat)\n");
+    // output the result
+    fprintf(tmp, "(get-objectives)\n");
+    fclose(tmp);
+    // feed the problem description to z3
+    FILE *fp = popen("z3 -T:0 tmp_problem.smt2", "r");
+    if (!fp) {
+      fprintf(stderr, "z3 could not be started");
+      return 1;
+    }
+    char buffer[1024];
+    void *read = 0;
+    // read z3 output
+    while ((read = fgets(buffer, sizeof(buffer), fp)) != NULL) {
+      // look for lines that contain both opening and closing paren
+      char *start = strchr(buffer, '(');
+      char *end = strrchr(buffer, ')');
+      if (start && end) {
+        // result (min number of button presses)
+        // is to be found after the last space
+        char *last_space = strrchr(buffer, ' ');
+        if (last_space && last_space++ < end) {
+          // parse integer
+          int accum = 0;
+          while (last_space < end) {
+            accum = accum * 10 + ((*last_space) - '0');
+            last_space++;
+          }
+          min = accum;
+        }
+      }
+    }
+    pclose(fp);
+    unlink(TMP_FILE_NAME);
     sum += min;
   }
 
   return sum;
-}
-
-unsigned long hash_state(unsigned int remain[16]) {
-  unsigned long h = 0;
-  for (int i = 0; i < 16; i++) {
-    h = h * 31 + remain[i];
-  }
-  return h;
-}
-
-// DFS returning minimal number of vectors to reach 'remain'
-int dfs(unsigned short toggle_mask[32][16], unsigned int remain[16], size_t idx,
-        size_t button_count, cache_entry **cache) {
-  int done = 1;
-  for (int i = 0; i < 16; i++) {
-    if (remain[i] != 0) {
-      done = 0;
-      break;
-    }
-  }
-  if (done) {
-    return 0; // 0 vectors needed for empty target
-  }
-
-  if (idx >= button_count)
-    return -1; // no solution
-
-  // cache lookup
-  unsigned long h = hash_state(remain) ^ idx;
-  unsigned long slot = h % CACHE_SIZE;
-  for (cache_entry *e = cache[slot]; e; e = e->next) {
-    if (e->key == h)
-      return e->value;
-  }
-  int min_count = -1;
-
-  // compute max times we can use this vector
-  int max_take = -1;
-  for (int i = 0; i < 16; i++) {
-    if (toggle_mask[idx][i] == 0)
-      continue; // ignore 0 components
-    int t = remain[i] / toggle_mask[idx][i];
-    if (max_take == -1 || t < max_take)
-      max_take = t;
-  }
-
-  // if max_take == -1, the vector is all zeros, only 0 copies can be used
-  if (max_take == -1) {
-    max_take = 0;
-  }
-
-  for (int take = 0; take <= max_take; take++) {
-    // subtract take copies of the vector
-    for (int i = 0; i < 16; i++) {
-      remain[i] -= take * toggle_mask[idx][i];
-    }
-
-    int res = dfs(toggle_mask, remain, idx + 1, button_count, cache);
-    if (res >= 0) {
-      int total = res + take;
-      if (min_count == -1 || total < min_count) {
-        min_count = total;
-      }
-    }
-
-    // backtrack
-    for (int i = 0; i < 16; i++) {
-      remain[i] += take * toggle_mask[idx][i];
-    }
-  }
-
-  // store in cache
-  cache_entry *e = malloc(sizeof(cache_entry));
-  e->key = h;
-  e->value = min_count;
-  e->next = cache[slot];
-  cache[slot] = e;
-
-  return min_count;
 }
