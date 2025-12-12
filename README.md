@@ -1,5 +1,7 @@
 # My attempt at Adevent of Code 2025
 
+![Screnshot of solution page](done.png)
+
 ## Compile and run a Single day
 
 ```sh

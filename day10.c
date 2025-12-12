@@ -248,7 +248,6 @@ long long part2(size_t size, char *buffer) {
       fprintf(to_z3, "\n");
     }
     {
-
       // require number of button presses to be positive
       for (size_t bi = 0; bi < button_count; bi++) {
         fprintf(to_z3, "(assert (>= x%lu 0))\n", bi);
